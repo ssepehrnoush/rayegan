@@ -9,6 +9,16 @@ import { openTunnel } from './proxy.js';
 
 const LOCAL = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 
+// A one-shot agent whose only connection is our tunnel. Passing
+// `createConnection` next to `agent: false` is ignored on Node 18, which
+// silently sent "proxied" requests straight out; overriding the agent's own
+// createConnection works on every version.
+function tunnelAgent(secure, socket) {
+  const agent = new (secure ? https.Agent : http.Agent)({ keepAlive: false });
+  agent.createConnection = () => socket;
+  return agent;
+}
+
 export async function request(url, opts = {}) {
   const { method = 'GET', headers = {}, body, proxy, timeoutMs = 60000, proxyLocal = false } = opts;
   const u = new URL(url);
@@ -42,7 +52,7 @@ export async function request(url, opts = {}) {
         method,
         headers: hdrs,
         timeout: timeoutMs,
-        ...(socket ? { agent: false, createConnection: () => socket } : {}),
+        ...(socket ? { agent: tunnelAgent(secure, socket) } : {}),
       },
       (res) => {
         if (socket) res.once('close', () => socket.destroy());

@@ -57,6 +57,12 @@ export function tmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'rayegan-test-'));
 }
 
+// Tests address the fake provider as "rayegan.invalid", a name that only the
+// test proxies resolve. A request that skipped the proxy fails on DNS instead
+// of quietly reaching 127.0.0.1, which is how a Node 18 bypass once hid.
+export const VIA_PROXY_ONLY = 'rayegan.invalid';
+const dialable = (host) => (host === VIA_PROXY_ONLY || host === 'localhost' ? '127.0.0.1' : host);
+
 // Minimal HTTP CONNECT proxy. Records every target it tunnels to.
 export async function connectProxy() {
   const targets = [];
@@ -67,7 +73,7 @@ export async function connectProxy() {
     open.add(client);
     client.on('close', () => open.delete(client));
     const [host, port] = req.url.split(':');
-    const upstream = net.connect(Number(port), host, () => {
+    const upstream = net.connect(Number(port), dialable(host), () => {
       client.write('HTTP/1.1 200 Connection Established\r\n\r\n');
       if (head.length) upstream.write(head);
       upstream.pipe(client);
@@ -122,8 +128,7 @@ export async function socksProxy() {
         client.off('data', onData);
         // Node 18 resolves "localhost" to ::1 first and does not fall back to
         // IPv4, while the fake provider only listens on 127.0.0.1.
-        const dial = host === 'localhost' ? '127.0.0.1' : host;
-        const upstream = net.connect(port, dial, () => {
+        const upstream = net.connect(port, dialable(host), () => {
           client.write(Buffer.from([5, 0, 0, 1, 127, 0, 0, 1, 0, 0]));
           upstream.pipe(client);
           client.pipe(upstream);

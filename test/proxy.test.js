@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import net from 'node:net';
 import { parseProxy, openTunnel } from '../src/proxy.js';
 import { request, readJson } from '../src/http.js';
-import { fakeProvider, connectProxy, socksProxy } from './helpers.js';
+import { fakeProvider, connectProxy, socksProxy, VIA_PROXY_ONLY } from './helpers.js';
+
+const viaProxy = (up, p) => `http://${VIA_PROXY_ONLY}:${new URL(up.url).port}${p}`;
 
 test('parseProxy understands the forms v2ray users paste', () => {
   assert.equal(parseProxy('http://127.0.0.1:10808').protocol, 'http');
@@ -19,16 +21,14 @@ test('requests travel through an HTTP CONNECT proxy', async () => {
   const up = await fakeProvider(() => null);
   const px = await connectProxy();
   try {
-    const res = await request(`${up.url}/chat/completions`, {
+    const res = await request(viaProxy(up, '/chat/completions'), {
       method: 'POST',
       body: { model: 'm', messages: [] },
       proxy: parseProxy(px.url),
-      proxyLocal: true,
     });
     assert.equal(res.status, 200);
     assert.equal((await readJson(res)).choices[0].message.content, 'hi from m');
-    assert.equal(px.targets.length, 1);
-    assert.equal(px.targets[0], new URL(up.url).host);
+    assert.deepEqual(px.targets, [`${VIA_PROXY_ONLY}:${new URL(up.url).port}`]);
   } finally {
     await px.close();
     await up.close();
@@ -40,7 +40,7 @@ test('a finished request closes its tunnel instead of leaking it', async () => {
   const px = await connectProxy();
   try {
     for (let i = 0; i < 3; i++) {
-      const res = await request(`${up.url}/models`, { proxy: parseProxy(px.url), proxyLocal: true });
+      const res = await request(viaProxy(up, '/models'), { proxy: parseProxy(px.url) });
       await readJson(res);
     }
     await new Promise((r) => setTimeout(r, 100));
@@ -56,19 +56,26 @@ test('requests travel through a SOCKS5 proxy, which receives the hostname', asyn
   const up = await fakeProvider(() => null);
   const px = await socksProxy();
   try {
-    const port = new URL(up.url).port;
-    const res = await request(`http://localhost:${port}/chat/completions`, {
+    const res = await request(viaProxy(up, '/chat/completions'), {
       method: 'POST',
       body: { model: 'm', messages: [] },
       proxy: parseProxy(px.url),
-      proxyLocal: true,
     });
     assert.equal(res.status, 200);
     await readJson(res);
     // The name, not a locally resolved IP: local DNS in Iran is not trusted.
-    assert.equal(px.targets[0], `localhost:${port}`);
+    assert.equal(px.targets[0], `${VIA_PROXY_ONLY}:${new URL(up.url).port}`);
   } finally {
     await px.close();
+    await up.close();
+  }
+});
+
+test('without a proxy, the test hostname really is unreachable', async () => {
+  const up = await fakeProvider(() => null);
+  try {
+    await assert.rejects(request(viaProxy(up, '/models'), { timeoutMs: 3000 }));
+  } finally {
     await up.close();
   }
 });
