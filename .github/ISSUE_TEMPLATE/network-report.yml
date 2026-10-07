@@ -1,0 +1,39 @@
+name: "Network report / گزارش شبکه"
+description: "Which providers work from your ISP? / کدام سرویس از اینترنت شما باز است؟"
+title: "[network] <ISP>, <city>"
+labels: ["network-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Run this **with your VPN off** and paste the output. / این دستور را **با VPN خاموش** بزنید و خروجی را بچسبانید:
+
+        ```
+        npx github:ssepehrnoush/rayegan doctor --proxy none
+        ```
+
+        No keys are sent. The check uses a fake key, so it only shows whether each provider answers from your network. / هیچ کلیدی فرستاده نمی‌شود؛ فقط معلوم می‌شود هر سرویس از شبکه شما جواب می‌دهد یا نه.
+  - type: dropdown
+    id: isp
+    attributes:
+      label: "ISP / اپراتور"
+      options:
+        - "Hamrah-e Aval (MCI) / همراه اول"
+        - "Irancell / ایرانسل"
+        - "Rightel / رایتل"
+        - "TCI fixed line / مخابرات"
+        - "Shatel / شاتل"
+        - "Other / غیره"
+    validations:
+      required: true
+  - type: input
+    id: city
+    attributes:
+      label: "City / شهر"
+  - type: textarea
+    id: output
+    attributes:
+      label: "doctor output / خروجی doctor"
+      render: text
+    validations:
+      required: true
