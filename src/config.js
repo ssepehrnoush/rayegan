@@ -73,6 +73,9 @@ export function loadConfig({ file, cwd = process.cwd(), env = process.env, overr
     ranking: user.ranking || base.ranking,
     exclude: [...base.exclude, ...(user.exclude || [])],
     proxy: proxyValue && proxyValue !== 'none' ? parseProxy(proxyValue) : null,
+    // "auto": try each provider directly, use the proxy only where direct
+    // fails or answers 403. "always": everything through the proxy.
+    proxyMode: overrides.proxyMode ?? user.proxyMode ?? env.RAYEGAN_PROXY_MODE ?? 'auto',
     port: Number(overrides.port ?? user.port ?? env.RAYEGAN_PORT ?? 8787),
     host: overrides.host ?? user.host ?? env.RAYEGAN_HOST ?? '127.0.0.1',
     apiKey: user.apiKey ?? env.RAYEGAN_API_KEY ?? null,

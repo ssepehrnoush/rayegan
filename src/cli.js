@@ -24,7 +24,9 @@ Options:
   --port <n>             port to listen on (default 8787)
   --host <addr>          address to bind (default 127.0.0.1)
   --proxy <url>          http://127.0.0.1:10808 or socks5://127.0.0.1:10808
-                         ("none" ignores HTTPS_PROXY)
+                         ("none" ignores HTTPS_PROXY). Each provider is tried
+                         directly first and only uses the proxy if blocked.
+  --proxy-all            send every provider through the proxy
   --config <file>        config file (default ./rayegan.json or ~/.rayegan/config.json)
   -h, --help             show this help
   -v, --version          print the version
@@ -39,6 +41,7 @@ function parseArgs(argv) {
     if (a === '-h' || a === '--help') args.flags.help = true;
     else if (a === '-v' || a === '--version') args.flags.version = true;
     else if (a === '--chat') args.flags.chat = true;
+    else if (a === '--proxy-all') args.flags.proxyMode = 'always';
     else if (['--port', '--host', '--proxy', '--config'].includes(a)) {
       const v = argv[++i];
       if (v === undefined) throw new Error(`${a} needs a value`);
@@ -78,7 +81,7 @@ async function main() {
 
   const cfg = loadConfig({
     file: args.flags.config,
-    overrides: { port: args.flags.port, host: args.flags.host, proxy: args.flags.proxy },
+    overrides: { port: args.flags.port, host: args.flags.host, proxy: args.flags.proxy, proxyMode: args.flags.proxyMode },
   });
 
   if (cmd === 'doctor') {
@@ -103,7 +106,7 @@ async function main() {
   const app = await start({ cfg, log });
   const cat = app.getCatalog();
   for (const [id, s] of Object.entries(cat.status)) {
-    if (s.state === 'ok') log(`  ${id}: ${s.using} model(s)`);
+    if (s.state === 'ok') log(`  ${id}: ${s.using} model(s), ${s.route}`);
     else if (s.state === 'needs-key') log(`  ${id}: skipped, set ${s.missing.join(', ')}`);
     else log(`  ${id}: ${s.state} (${s.error})`);
   }

@@ -1,5 +1,6 @@
 {
   "proxy": "http://127.0.0.1:10808",
+  "proxyMode": "auto",
   "keys": {
     "groq": "gsk_...",
     "cerebras": "csk-...",
@@ -14,7 +15,8 @@
   },
   "disable": [],
   "providers": [
-    { "id": "openrouter", "limits": { "rpd": 1000 } }
+    { "id": "openrouter", "limits": { "rpd": 1000 } },
+    { "id": "kilo", "proxy": "none" }
   ],
   "apiKey": null,
   "port": 8787

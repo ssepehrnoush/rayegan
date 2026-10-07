@@ -122,6 +122,7 @@ async function load() {
     let info = '';
     if (p.state === 'needs-key') info = `متغیر <code>${esc(p.missing.join(', '))}</code> را بگذارید.` + (p.signup ? ` <a href="${esc(p.signup)}" target="_blank" rel="noopener">گرفتن کلید</a>` : '');
     else if (p.state === 'ok') info = (p.keyless ? 'بدون کلید. ' : '') + fa(p.using || 0) + ' مدل در زنجیره';
+    if (p.route) info += ` <span class="pill ${p.route === 'proxy' ? 'warn' : 'ok'}">${p.route === 'proxy' ? 'از پروکسی' : 'مستقیم'}</span>`;
     else info = `<span class="ltr">${esc(p.error || '')}</span>`;
     if (p.note) info += `<div class="muted ltr">${esc(p.note)}</div>`;
     return `<tr><td>${esc(p.name)}</td><td>${st}</td><td>${info}</td></tr>`;

@@ -7,6 +7,7 @@
 // never sneaks to the front of the chain.
 
 import { request, readJson } from './http.js';
+import { chooseRoute } from './route.js';
 
 export function rankOf(id, ranking) {
   for (let i = 0; i < ranking.length; i++) {
@@ -54,10 +55,12 @@ export function pickModels(p, models, { ranking, exclude }) {
 
 export function orderChain(entries, ranking, providerOrder) {
   const chain = [];
-  for (const { provider, models } of entries) {
+  for (const { provider, models, proxy } of entries) {
     for (const model of models) {
       const r = rankOf(model, ranking);
-      chain.push({ provider: provider.id, model, rank: r === -1 ? ranking.length : r, def: provider });
+      const c = { provider: provider.id, model, rank: r === -1 ? ranking.length : r, def: provider };
+      if (proxy !== undefined) c.proxy = proxy;
+      chain.push(c);
     }
   }
   chain.sort((a, b) => a.rank - b.rank || providerOrder.indexOf(a.provider) - providerOrder.indexOf(b.provider));
@@ -75,21 +78,23 @@ export async function buildCatalog(cfg, { req = request, log = () => {} } = {}) 
         status[p.id] = { state: 'needs-key', missing: p.missing, signup: p.signup };
         return;
       }
+      const route = await chooseRoute(p, cfg, { req });
+      const via = { route: route.proxy ? 'proxy' : 'direct', routeWhy: route.why };
       let models = p.models ? [...p.models] : [];
       if (p.discover) {
         try {
-          const found = await listModels(p, { proxy: cfg.proxy, req });
+          const found = await listModels(p, { proxy: route.proxy, req });
           models = [...new Set([...models, ...pickModels(p, found, cfg)])];
-          status[p.id] = { state: 'ok', found: found.length, using: models.length };
+          status[p.id] = { state: 'ok', found: found.length, using: models.length, ...via };
         } catch (err) {
           const state = err.status === 401 ? 'bad-key' : err.status === 403 ? 'blocked' : 'unreachable';
-          status[p.id] = { state, error: err.message, using: models.length };
+          status[p.id] = { state, error: err.message, using: models.length, ...via };
           log(`${p.id}: model discovery failed (${err.message})`);
         }
       } else {
-        status[p.id] = { state: 'ok', using: models.length };
+        status[p.id] = { state: 'ok', using: models.length, ...via };
       }
-      if (models.length) entries.push({ provider: p, models });
+      if (models.length) entries.push({ provider: p, models, proxy: route.proxy });
     }),
   );
   const order = cfg.providers.map((p) => p.id);

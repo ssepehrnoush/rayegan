@@ -5,19 +5,20 @@
 
 import { listModels, pickModels, authHeaders, rankOf } from './catalog.js';
 import { request, readBody } from './http.js';
+import { chooseRoute } from './route.js';
 
 function pad(s, n) {
   s = String(s);
   return s.length >= n ? s.slice(0, n) : s + ' '.repeat(n - s.length);
 }
 
-async function tryChat(p, model, cfg, req) {
+async function tryChat(p, model, proxy, req) {
   const t0 = Date.now();
   const res = await req(`${p.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: authHeaders(p),
     body: { model, messages: [{ role: 'user', content: 'Reply with the single word: ok' }], max_tokens: 16 },
-    proxy: cfg.proxy,
+    proxy,
     timeoutMs: 45000,
   });
   const text = await readBody(res, 256 * 1024);
@@ -32,22 +33,31 @@ async function tryChat(p, model, cfg, req) {
 // "probe": false.
 export async function probeWithoutKey(p, cfg, req = request) {
   if (p.probe === false || p.baseUrl.includes('{')) return null;
-  const t0 = Date.now();
-  try {
-    const res = await req(`${p.baseUrl}/models`, {
-      headers: { authorization: 'Bearer rayegan-probe-not-a-key' },
-      proxy: cfg.proxy,
-      timeoutMs: 15000,
-    });
-    res.stream.resume();
-    const ms = Date.now() - t0;
-    if (res.status === 403) {
-      return { result: 'blocked here', ms, note: cfg.proxy ? 'refused from this proxy too; ' : 'refused from this network, needs --proxy; then ' };
+  const once = async (proxy) => {
+    try {
+      const res = await req(`${p.baseUrl}/models`, {
+        headers: { authorization: 'Bearer rayegan-probe-not-a-key' },
+        proxy,
+        timeoutMs: 15000,
+      });
+      res.stream.resume();
+      return res.status === 403 ? 'blocked' : 'open';
+    } catch (err) {
+      return err.message;
     }
-    return { result: 'needs key', ms, note: 'reachable; ' };
-  } catch (err) {
-    return { result: 'unreachable', ms: Date.now() - t0, note: `${err.message}; ` };
+  };
+  const t0 = Date.now();
+  const direct = await once(null);
+  if (direct === 'open') return { result: 'needs key', ms: Date.now() - t0, note: `reachable${cfg.proxy ? ' directly' : ''}; ` };
+  if (!cfg.proxy) {
+    if (direct === 'blocked') return { result: 'blocked here', ms: Date.now() - t0, note: 'refused from this network, needs --proxy; then ' };
+    return { result: 'unreachable', ms: Date.now() - t0, note: `${direct}; ` };
   }
+  const viaProxy = await once(cfg.proxy);
+  const ms = Date.now() - t0;
+  if (viaProxy === 'open') return { result: 'needs key', ms, note: 'blocked directly, reachable via proxy; ' };
+  if (viaProxy === 'blocked') return { result: 'blocked here', ms, note: 'refused directly and via this proxy; ' };
+  return { result: 'unreachable', ms, note: `${viaProxy}; ` };
 }
 
 export async function doctor(cfg, { chat = false, out = (s) => process.stdout.write(s + '\n'), req = request } = {}) {
@@ -70,12 +80,13 @@ export async function doctor(cfg, { chat = false, out = (s) => process.stdout.wr
       continue;
     }
     const t0 = Date.now();
+    const route = await chooseRoute(p, cfg, { req });
     let models = p.models ? [...p.models] : [];
     let result = 'ok';
-    let detail = p.keyless ? 'no key needed' : 'key set';
+    let detail = (p.keyless ? 'no key needed' : 'key set') + (cfg.proxy ? (route.proxy ? ', via proxy' : ', direct') : '');
     try {
       if (p.discover) {
-        const found = await listModels(p, { proxy: cfg.proxy, req, timeoutMs: 15000 });
+        const found = await listModels(p, { proxy: route.proxy, req, timeoutMs: 15000 });
         models = [...new Set([...models, ...pickModels(p, found, cfg)])];
         detail += `, ${found.length} listed`;
       }
@@ -92,8 +103,8 @@ export async function doctor(cfg, { chat = false, out = (s) => process.stdout.wr
       result = 'chat failed';
       for (const model of ranked.slice(0, 3)) {
         try {
-          const r = await tryChat(p, model, cfg, req);
-          detail = r.detail;
+          const r = await tryChat(p, model, route.proxy, req);
+          detail = r.detail + (cfg.proxy ? (route.proxy ? ' via proxy' : ' direct') : '');
           if (r.ok) {
             result = 'ok';
             break;

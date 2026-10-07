@@ -78,6 +78,7 @@ export function statusReport({ getCatalog, usage, cfg }) {
   return {
     day: snap.day,
     proxy: cfg.proxy ? cfg.proxy.url : null,
+    proxyMode: cfg.proxyMode,
     refreshedAt: new Date(cat.at).toISOString(),
     available: chain.filter((c) => c.available).length,
     chain,

@@ -59,6 +59,11 @@ npx github:ssepehrnoush/rayegan --proxy socks5://127.0.0.1:10808
 
 اگر `HTTPS_PROXY` را از قبل گذاشته‌اید، خودش برش می‌دارد. در SOCKS5 اسم سایت به خود پروکسی داده می‌شود، نه IP، تا DNS داخلی (که برای سایت‌های بسته جواب غلط می‌دهد) وسط نیاید.
 
+**همه چیز از پروکسی نمی‌رود.** موقع شروع، هر سرویس یک بار مستقیم امتحان می‌شود. اگر جواب داد، مستقیم می‌ماند (سریع‌تر، و حجم VPN مصرف نمی‌کند). فقط سرویسی که مستقیم ۴۰۳ بدهد یا وصل نشود، از پروکسی می‌رود. اگر سرویسی که مستقیم کار می‌کرد وسط کار ۴۰۳ بدهد، همان لحظه می‌رود پشت پروکسی. داشبورد کنار هر سرویس نشان می‌دهد «مستقیم» است یا «از پروکسی».
+
+- همه چیز از پروکسی: `--proxy-all` یا `"proxyMode": "always"` در فایل تنظیمات.
+- برای یک سرویس خاص، در فایل تنظیمات: `{ "id": "kilo", "proxy": "none" }` (همیشه مستقیم) یا یک آدرس پروکسی دیگر.
+
 ### اول ببینید چه چیزی از شبکه شما باز است
 
 <div dir="ltr">
@@ -199,7 +204,7 @@ const r = await fetch('http://127.0.0.1:8787/v1/chat/completions', {
 
 ## English
 
-**rayegan** ("free" in Persian) is a local OpenAI-compatible endpoint that stacks every free LLM API tier you have. Model `auto` goes to the smartest model that still has quota; on a 429, an error, or an empty 200 it moves to the next one. It discovers each provider's current free models at startup, counts requests and tokens per provider and per model, and parks broken models with exponential backoff (a removed model is parked for a day). Keyless gateways work with zero setup, and it tunnels through HTTP or SOCKS5 proxies without dependencies, which is what developers in Iran need.
+**rayegan** ("free" in Persian) is a local OpenAI-compatible endpoint that stacks every free LLM API tier you have. Model `auto` goes to the smartest model that still has quota; on a 429, an error, or an empty 200 it moves to the next one. It discovers each provider's current free models at startup, counts requests and tokens per provider and per model, and parks broken models with exponential backoff (a removed model is parked for a day). Keyless gateways work with zero setup, and it tunnels through HTTP or SOCKS5 proxies without dependencies, which is what developers in Iran need. With a proxy set, each provider is tried directly first and only moved behind the proxy if it answers 403 or cannot be reached, so providers that work from Iran do not spend VPN bandwidth.
 
 Measured from Iran without a VPN (TCI, AS58224, 2026-10-07): the keyless Kilo gateway works and answers in Persian; Mistral and Cloudflare are reachable; Groq, Cerebras, OpenRouter and NVIDIA NIM answer 403 to Iranian IPs and need `--proxy`. `rayegan doctor` checks this from your own network, even before you have keys.
 

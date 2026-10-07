@@ -4,6 +4,7 @@
 import crypto from 'node:crypto';
 import { request, readBody } from './http.js';
 import { authHeaders } from './catalog.js';
+import { explicitRoute } from './route.js';
 
 export const AUTO = new Set(['auto', 'rayegan', 'free', 'default', '']);
 const STICKY_TTL = 2 * 60 * 60 * 1000;
@@ -60,7 +61,8 @@ export function createRouter({ getChain, usage, cfg, req = request, log = () => 
     if (!list.length) {
       return errorResult(404, `no model called "${wanted}" is available. Use "auto" or GET /v1/models.`, attempts);
     }
-    for (const c of list) {
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
       if (attempts.filter((a) => a.sent).length >= cfg.maxAttempts) break;
       const ok = usage.check(c);
       if (!ok.ok) {
@@ -76,7 +78,7 @@ export function createRouter({ getChain, usage, cfg, req = request, log = () => 
           method: 'POST',
           headers: { ...authHeaders(c.def), accept: body.stream ? 'text/event-stream' : 'application/json' },
           body: upstream,
-          proxy: cfg.proxy,
+          proxy: 'proxy' in c ? c.proxy : cfg.proxy,
           timeoutMs: cfg.timeoutMs,
         });
       } catch (err) {
@@ -92,6 +94,17 @@ export function createRouter({ getChain, usage, cfg, req = request, log = () => 
           text = (await readBody(res, 64 * 1024)).slice(0, 2000);
         } catch {
           // ignore, the status code is enough
+        }
+        // A provider that worked directly now refuses this network (ISP or
+        // sanctions change). Move the whole provider behind the proxy and try
+        // the same model again, instead of parking it for hours.
+        if (res.status === 403 && c.proxy === null && cfg.proxy && explicitRoute(c.def) === undefined) {
+          for (const x of getChain()) if (x.provider === c.provider && x.proxy === null) x.proxy = cfg.proxy;
+          if (c.proxy === null) c.proxy = cfg.proxy;
+          attempts.push({ id, sent: true, failed: 'blocked-direct', status: 403 });
+          log(`${c.provider}: 403 on the direct route, switching it to the proxy`);
+          i--;
+          continue;
         }
         const v = usage.failure(c, { status: res.status, text, retryAfter: res.headers['retry-after'] });
         attempts.push({ id, sent: true, failed: v.kind, status: res.status });
