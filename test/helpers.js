@@ -120,7 +120,10 @@ export async function socksProxy() {
         const port = buf.readUInt16BE(end);
         targets.push(`${host}:${port}`);
         client.off('data', onData);
-        const upstream = net.connect(port, host, () => {
+        // Node 18 resolves "localhost" to ::1 first and does not fall back to
+        // IPv4, while the fake provider only listens on 127.0.0.1.
+        const dial = host === 'localhost' ? '127.0.0.1' : host;
+        const upstream = net.connect(port, dial, () => {
           client.write(Buffer.from([5, 0, 0, 1, 127, 0, 0, 1, 0, 0]));
           upstream.pipe(client);
           client.pipe(upstream);
