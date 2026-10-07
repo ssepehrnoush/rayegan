@@ -69,7 +69,24 @@ npx github:ssepehrnoush/rayegan doctor --chat
 
 </div>
 
-برای هر سرویس از همین شبکه یک درخواست واقعی می‌فرستد و می‌گوید: کار می‌کند، کلید لازم دارد، کلید غلط است، خطای ۴۰۳ می‌دهد (یعنی احتمالاً منطقه یا اکانت بسته است)، یا اصلاً جواب نمی‌دهد (یعنی احتمالاً فیلتر است و پروکسی لازم دارید). یک بار با VPN و یک بار بدون آن بزنید، فرقش را می‌بینید.
+برای هر سرویس از همین شبکه یک درخواست واقعی می‌فرستد و می‌گوید: کار می‌کند، کلید لازم دارد، کلید غلط است، خطای ۴۰۳ می‌دهد (یعنی احتمالاً منطقه یا اکانت بسته است)، یا اصلاً جواب نمی‌دهد (یعنی احتمالاً فیلتر است و پروکسی لازم دارید). یک بار با VPN و یک بار بدون آن بزنید، فرقش را می‌بینید. حتی بدون کلید هم چک می‌کند هر سرویس از شبکه شما باز است یا نه، تا قبل از ثبت‌نام بدانید پروکسی لازم دارید یا نه.
+
+### نتیجه از اینترنت ایران
+
+اندازه‌گیری ۲۰۲۶-۱۰-۰۷، بدون VPN، از مخابرات تهران (AS58224). برای جدا کردن «بسته» از «کلید لازم دارد»، همان درخواست با یک کلید ساختگی یک بار مستقیم و یک بار از سرور آلمان فرستاده شد:
+
+| سرویس | از ایران بدون VPN | از سرور آلمان |
+|---|---|---|
+| Kilo Gateway | ✅ کار می‌کند، بدون کلید؛ مدل رایگان فارسی جواب داد | ✅ |
+| Mistral | ✅ در دسترس (۴۰۱، یعنی فقط کلید می‌خواهد) | ✅ |
+| Cloudflare | ✅ در دسترس | ✅ |
+| Groq | ❌ ۴۰۳ | ✅ |
+| Cerebras | ❌ ۴۰۳ | ✅ |
+| OpenRouter | ❌ ۴۰۳ («Access denied by security policy») | ✅ |
+| NVIDIA NIM | ❌ ۴۰۳ | ✅ |
+| Gemini | نامعلوم؛ با کلید ساختگی از هر دو جا ۴۰۳ می‌دهد | نامعلوم |
+
+یعنی بدون VPN، از همین امروز Kilo بدون هیچ کلیدی کار می‌کند، و Mistral و Cloudflare با کلید. برای چهار سرویس بسته، `--proxy` بدهید. این وضعیت ممکن است فردا عوض شود؛ اگر از اپراتور دیگری (همراه اول، ایرانسل) نتیجه متفاوتی گرفتید، خروجی `doctor` را در یک issue بگذارید.
 
 ## سهمیه بیشتر: کلیدهای رایگان
 
@@ -183,6 +200,8 @@ const r = await fetch('http://127.0.0.1:8787/v1/chat/completions', {
 ## English
 
 **rayegan** ("free" in Persian) is a local OpenAI-compatible endpoint that stacks every free LLM API tier you have. Model `auto` goes to the smartest model that still has quota; on a 429, an error, or an empty 200 it moves to the next one. It discovers each provider's current free models at startup, counts requests and tokens per provider and per model, and parks broken models with exponential backoff (a removed model is parked for a day). Keyless gateways work with zero setup, and it tunnels through HTTP or SOCKS5 proxies without dependencies, which is what developers in Iran need.
+
+Measured from Iran without a VPN (TCI, AS58224, 2026-10-07): the keyless Kilo gateway works and answers in Persian; Mistral and Cloudflare are reachable; Groq, Cerebras, OpenRouter and NVIDIA NIM answer 403 to Iranian IPs and need `--proxy`. `rayegan doctor` checks this from your own network, even before you have keys.
 
 ### Install
 

@@ -25,6 +25,31 @@ async function tryChat(p, model, cfg, req) {
   return { ok: true, detail: `${model} answered in ${Date.now() - t0} ms` };
 }
 
+// Before anyone signs up for a key, tell them whether the provider is even
+// open from this network. From Iran several providers answer 403 to every
+// request, valid key or not. A fake key separates that from "reachable, needs
+// a key" (401). Providers whose answer to a fake key is ambiguous opt out with
+// "probe": false.
+export async function probeWithoutKey(p, cfg, req = request) {
+  if (p.probe === false || p.baseUrl.includes('{')) return null;
+  const t0 = Date.now();
+  try {
+    const res = await req(`${p.baseUrl}/models`, {
+      headers: { authorization: 'Bearer rayegan-probe-not-a-key' },
+      proxy: cfg.proxy,
+      timeoutMs: 15000,
+    });
+    res.stream.resume();
+    const ms = Date.now() - t0;
+    if (res.status === 403) {
+      return { result: 'blocked here', ms, note: cfg.proxy ? 'refused from this proxy too; ' : 'refused from this network, needs --proxy; then ' };
+    }
+    return { result: 'needs key', ms, note: 'reachable; ' };
+  } catch (err) {
+    return { result: 'unreachable', ms: Date.now() - t0, note: `${err.message}; ` };
+  }
+}
+
 export async function doctor(cfg, { chat = false, out = (s) => process.stdout.write(s + '\n'), req = request } = {}) {
   out(`proxy: ${cfg.proxy ? cfg.proxy.url : 'none (set --proxy or HTTPS_PROXY if providers time out)'}`);
   out('');
@@ -35,7 +60,13 @@ export async function doctor(cfg, { chat = false, out = (s) => process.stdout.wr
   let unreachable = 0;
   for (const p of cfg.providers) {
     if (p.missing.length) {
-      out(`${pad(p.id, 12)}${pad('needs key', 14)}${pad('-', 9)}${pad('-', 8)}set ${p.missing.join(', ')}${p.signup ? `  ${p.signup}` : ''}`);
+      const how = `set ${p.missing.join(', ')}${p.signup ? `  ${p.signup}` : ''}`;
+      const probe = await probeWithoutKey(p, cfg, req);
+      if (!probe) {
+        out(`${pad(p.id, 12)}${pad('needs key', 14)}${pad('-', 9)}${pad('-', 8)}${how}`);
+      } else {
+        out(`${pad(p.id, 12)}${pad(probe.result, 14)}${pad(`${probe.ms} ms`, 9)}${pad('-', 8)}${probe.note}${how}`);
+      }
       continue;
     }
     const t0 = Date.now();

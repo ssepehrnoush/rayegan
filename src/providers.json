@@ -88,6 +88,7 @@
       "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
       "keyEnv": "GEMINI_API_KEY",
       "discover": { "stripPrefix": "models/" },
+      "probe": false,
       "limits": { "scope": "model", "rpm": 5, "rpd": 20 },
       "modelLimits": [
         { "match": "flash-lite", "rpm": 15, "rpd": 500 },

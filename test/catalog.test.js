@@ -82,3 +82,25 @@ test('buildCatalog discovers live, skips providers without keys, and explains wh
     await up.close();
   }
 });
+
+test('doctor tells "blocked from this network" apart from "needs a key"', async () => {
+  const { probeWithoutKey } = await import('../src/doctor.js');
+  const reachable = await fakeProvider(() => null);
+  const http = await import('node:http');
+  const geo = http.createServer((req, res) => res.writeHead(403).end('Access denied by security policy.'));
+  const { listen, close } = await import('./helpers.js');
+  const geoUrl = await listen(geo);
+  try {
+    const cfg = { proxy: null };
+    const open = await probeWithoutKey(provider('open', reachable.url), cfg);
+    assert.equal(open.result, 'needs key');
+    const shut = await probeWithoutKey(provider('shut', geoUrl), cfg);
+    assert.equal(shut.result, 'blocked here');
+    assert.match(shut.note, /--proxy/);
+    assert.equal(await probeWithoutKey(provider('g', geoUrl, { probe: false }), cfg), null);
+    assert.equal(await probeWithoutKey(provider('cf', 'https://x/{ACCOUNT}/v1'), cfg), null);
+  } finally {
+    await close(geo);
+    await reachable.close();
+  }
+});
