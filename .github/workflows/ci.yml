@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      # Every provider and proxy in the suite is a fake on localhost, so CI
+      # never spends anyone's free quota. Fail if anything was skipped: a
+      # skipped test here means the router was not exercised at all.
+      - name: tests
+        run: |
+          npm test 2>&1 | tee test.log
+          if grep -qE '^# skipped [1-9]' test.log; then echo "tests were skipped"; exit 1; fi
+      - name: CLI smoke test
+        run: |
+          node src/cli.js --help
+          node src/cli.js --version
+          # Unknown command is a usage error, exit code 2. The `|| code=$?`
+          # keeps `bash -e` from killing the step before the assertion runs.
+          code=0
+          node src/cli.js fly 2>/dev/null || code=$?
+          test "$code" -eq 2

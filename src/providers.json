@@ -1,0 +1,123 @@
+{
+  "$comment": "Free tiers change often. Limits here are conservative defaults checked on 2026-10-07; a 429 from the provider always wins over these numbers. PRs that update a limit should say where the number came from.",
+  "checked": "2026-10-07",
+
+  "ranking": [
+    "kimi-k3",
+    "deepseek-v4[.0-9]*-pro",
+    "glm-5\\.[0-9]+(-prime)?(:free)?$",
+    "qwen3\\.[0-9]+-max",
+    "nemotron-3-ultra",
+    "kimi-k2\\.[0-9]+",
+    "deepseek-v4[.0-9]*-flash",
+    "minimax-m3",
+    "gpt-oss-120b",
+    "gemini-[0-9.]+-(pro|flash)(-preview)?$",
+    "step-3",
+    "glm-5\\.[0-9]+-flash",
+    "qwen3\\.[0-9]+-(plus|flash|27b|35b)",
+    "nemotron-3-super",
+    "mistral-medium",
+    "llama-3\\.3-70b",
+    "gemini-[0-9.]+-flash-lite",
+    "(^|/)ling-",
+    "mistral-small",
+    "gpt-oss-20b",
+    "gemma-?[0-9]",
+    "nemotron-3\\.5-lightning",
+    "llama-3\\.1-8b"
+  ],
+
+  "exclude": ["^~", "auto", "^openrouter/", "vision", "safety", "embed", "guard", "whisper", "tts"],
+
+  "providers": [
+    {
+      "id": "kilo",
+      "name": "Kilo Gateway",
+      "baseUrl": "https://api.kilo.ai/api/gateway",
+      "keyless": true,
+      "discover": { "freeOnly": true },
+      "limits": { "rpm": 20 },
+      "signup": null,
+      "privacy": "Free and stealth models on public gateways may log prompts. Do not send secrets or personal data."
+    },
+    {
+      "id": "groq",
+      "name": "Groq",
+      "baseUrl": "https://api.groq.com/openai/v1",
+      "keyEnv": "GROQ_API_KEY",
+      "discover": {},
+      "limits": { "scope": "model", "rpm": 30, "rpd": 1000 },
+      "signup": "https://console.groq.com/keys",
+      "privacy": "Says it does not train on API inputs."
+    },
+    {
+      "id": "cerebras",
+      "name": "Cerebras",
+      "baseUrl": "https://api.cerebras.ai/v1",
+      "keyEnv": "CEREBRAS_API_KEY",
+      "discover": {},
+      "limits": { "scope": "model", "rpm": 30, "rpd": 14400, "tpd": 1000000 },
+      "signup": "https://cloud.cerebras.ai/",
+      "privacy": "Check the current terms."
+    },
+    {
+      "id": "openrouter",
+      "name": "OpenRouter",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "keyEnv": "OPENROUTER_API_KEY",
+      "discover": { "freeOnly": true },
+      "limits": { "rpm": 20, "rpd": 50 },
+      "signup": "https://openrouter.ai/keys",
+      "privacy": "Each free model is served by a different upstream with its own policy; several log prompts.",
+      "note": "50 requests a day for the whole account. A one-time 10 USD top-up raises it to 1000; set limits.rpd in your config if you did that."
+    },
+    {
+      "id": "nvidia",
+      "name": "NVIDIA NIM",
+      "baseUrl": "https://integrate.api.nvidia.com/v1",
+      "keyEnv": "NVIDIA_API_KEY",
+      "discover": {},
+      "limits": { "rpm": 40 },
+      "signup": "https://build.nvidia.com/",
+      "privacy": "Check the current terms."
+    },
+    {
+      "id": "gemini",
+      "name": "Google Gemini",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "keyEnv": "GEMINI_API_KEY",
+      "discover": { "stripPrefix": "models/" },
+      "limits": { "scope": "model", "rpm": 5, "rpd": 20 },
+      "modelLimits": [
+        { "match": "flash-lite", "rpm": 15, "rpd": 500 },
+        { "match": "gemma", "rpm": 30, "rpd": 14400 }
+      ],
+      "signup": "https://aistudio.google.com/apikey",
+      "privacy": "The free tier uses your prompts to improve Google products.",
+      "note": "Google blocks some accounts by the country they were registered in, even behind a VPN."
+    },
+    {
+      "id": "mistral",
+      "name": "Mistral",
+      "baseUrl": "https://api.mistral.ai/v1",
+      "keyEnv": "MISTRAL_API_KEY",
+      "models": ["mistral-medium-latest", "mistral-small-latest"],
+      "limits": { "rpm": 60 },
+      "signup": "https://console.mistral.ai/api-keys",
+      "privacy": "The free Experiment plan may require opting in to data use. Check the current terms."
+    },
+    {
+      "id": "cloudflare",
+      "name": "Cloudflare Workers AI",
+      "baseUrl": "https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/v1",
+      "keyEnv": "CLOUDFLARE_API_TOKEN",
+      "needs": ["CLOUDFLARE_ACCOUNT_ID"],
+      "models": ["@cf/openai/gpt-oss-120b", "@cf/openai/gpt-oss-20b"],
+      "limits": { "rpm": 300 },
+      "signup": "https://dash.cloudflare.com/profile/api-tokens",
+      "privacy": "Says it does not train on customer content.",
+      "note": "The free allowance is 10,000 neurons a day, which is not a request count. Expect a 429 when it runs out."
+    }
+  ]
+}

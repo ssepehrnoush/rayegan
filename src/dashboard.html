@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>رایگان</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #fff; --text: #1d1d1b; --muted: #6b6b66; --line: #e4e4df;
+    --ok: #1f7a4d; --ok-bg: #e5f4ec; --warn: #9a6200; --warn-bg: #fdf1dc; --bad: #b3261e; --bad-bg: #fbe7e5;
+    --accent: #3a5bd9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --card: #1e1e1c; --text: #ececea; --muted: #9a9a94; --line: #2e2e2b;
+      --ok: #6fd3a0; --ok-bg: #173126; --warn: #f0bd62; --warn-bg: #352812; --bad: #f2948d; --bad-bg: #3a1a18;
+      --accent: #8ea6ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.7 Vazirmatn, "Segoe UI", Tahoma, system-ui, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 28px 0 10px; }
+  p.sub { margin: 0; color: var(--muted); }
+  .bar { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; min-width: 150px; }
+  .stat b { display: block; font-size: 20px; }
+  .stat span { color: var(--muted); font-size: 13px; }
+  code, .ltr { direction: ltr; unicode-bidi: isolate; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  .box { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: right; vertical-align: top; }
+  th { font-size: 13px; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  .pill { display: inline-block; padding: 1px 9px; border-radius: 99px; font-size: 12px; white-space: nowrap; }
+  .ok { background: var(--ok-bg); color: var(--ok); }
+  .warn { background: var(--warn-bg); color: var(--warn); }
+  .bad { background: var(--bad-bg); color: var(--bad); }
+  .muted { color: var(--muted); font-size: 13px; }
+  a { color: var(--accent); }
+  pre { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+    direction: ltr; text-align: left; overflow-x: auto; font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>رایگان</h1>
+  <p class="sub">یک آدرس، همه سهمیه‌های رایگان. اول باهوش‌ترین مدلی که هنوز سهمیه دارد.</p>
+
+  <div class="bar">
+    <div class="stat"><b id="avail">…</b><span>مدل آماده</span></div>
+    <div class="stat"><b id="used">…</b><span>درخواست امروز</span></div>
+    <div class="stat"><b id="proxy" class="ltr">…</b><span>پروکسی</span></div>
+  </div>
+
+  <h2>استفاده</h2>
+  <pre id="usage">curl http://127.0.0.1:8787/v1/chat/completions \
+  -H "content-type: application/json" \
+  -d '{"model":"auto","messages":[{"role":"user","content":"سلام"}]}'</pre>
+
+  <h2>زنجیره، به ترتیب هوش</h2>
+  <div class="box"><table>
+    <thead><tr><th>#</th><th>مدل</th><th>سرویس</th><th>امروز</th><th>وضعیت</th></tr></thead>
+    <tbody id="chain"><tr><td colspan="5" class="muted">در حال خواندن…</td></tr></tbody>
+  </table></div>
+
+  <h2>سرویس‌ها</h2>
+  <div class="box"><table>
+    <thead><tr><th>سرویس</th><th>وضعیت</th><th>توضیح</th></tr></thead>
+    <tbody id="providers"></tbody>
+  </table></div>
+
+  <p class="muted" id="foot"></p>
+</main>
+<script>
+const REASON = {
+  'rate-limited': ['سقف نرخ، کمی صبر', 'warn'],
+  'minute-limit': ['سقف دقیقه‌ای پر است', 'warn'],
+  'daily-limit': ['سهمیه امروز تمام شد', 'warn'],
+  'daily-tokens': ['توکن امروز تمام شد', 'warn'],
+  'gone': ['مدل برداشته شده', 'bad'],
+  'paid-only': ['دیگر رایگان نیست', 'bad'],
+  'bad-key': ['کلید نامعتبر', 'bad'],
+  'blocked': ['دسترسی بسته (منطقه یا تحریم)', 'bad'],
+  'network': ['خطای شبکه', 'warn'],
+  'error': ['خطای سرویس', 'warn'],
+};
+const STATE = {
+  'ok': ['فعال', 'ok'],
+  'needs-key': ['کلید لازم دارد', 'warn'],
+  'bad-key': ['کلید نامعتبر', 'bad'],
+  'blocked': ['بسته است (۴۰۳)', 'bad'],
+  'unreachable': ['در دسترس نیست', 'bad'],
+};
+const fa = (n) => Number(n).toLocaleString('fa-IR');
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const pill = ([text, cls]) => `<span class="pill ${cls}">${esc(text)}</span>`;
+
+async function load() {
+  let s;
+  try { s = await (await fetch('/status')).json(); }
+  catch { document.getElementById('foot').textContent = 'سرور جواب نداد.'; return; }
+
+  document.getElementById('avail').textContent = fa(s.available) + ' از ' + fa(s.chain.length);
+  document.getElementById('used').textContent = fa(s.chain.reduce((a, c) => a + c.usedToday, 0));
+  document.getElementById('proxy').textContent = s.proxy || 'ندارد';
+  document.getElementById('usage').textContent = document.getElementById('usage').textContent.replace('http://127.0.0.1:8787', location.origin);
+
+  document.getElementById('chain').innerHTML = s.chain.length ? s.chain.map((c, i) => {
+    const st = c.available ? pill(['آماده', 'ok']) : pill(REASON[c.reason] || [c.reason, 'warn']);
+    const lim = c.limitPerDay
+      ? `<div class="muted">سهمیه: ${fa(c.quotaUsed)} از ${fa(c.limitPerDay)}${c.sharedWith ? ' برای کل ' + esc(c.sharedWith) : ''}</div>`
+      : '';
+    const until = c.until ? `<div class="muted">تا ${new Date(c.until).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</div>` : '';
+    return `<tr><td>${fa(i + 1)}</td><td><code>${esc(c.model)}</code></td><td>${esc(c.provider)}</td><td>${fa(c.usedToday)}${lim}</td><td>${st}${until}</td></tr>`;
+  }).join('') : '<tr><td colspan="5" class="muted">هیچ مدلی در دسترس نیست. دستور rayegan doctor را بزنید.</td></tr>';
+
+  document.getElementById('providers').innerHTML = s.providers.map((p) => {
+    const st = pill(STATE[p.state] || [p.state || 'نامعلوم', 'warn']);
+    let info = '';
+    if (p.state === 'needs-key') info = `متغیر <code>${esc(p.missing.join(', '))}</code> را بگذارید.` + (p.signup ? ` <a href="${esc(p.signup)}" target="_blank" rel="noopener">گرفتن کلید</a>` : '');
+    else if (p.state === 'ok') info = (p.keyless ? 'بدون کلید. ' : '') + fa(p.using || 0) + ' مدل در زنجیره';
+    else info = `<span class="ltr">${esc(p.error || '')}</span>`;
+    if (p.note) info += `<div class="muted ltr">${esc(p.note)}</div>`;
+    return `<tr><td>${esc(p.name)}</td><td>${st}</td><td>${info}</td></tr>`;
+  }).join('');
+
+  document.getElementById('foot').textContent = 'فهرست مدل‌ها: ' + new Date(s.refreshedAt).toLocaleString('fa-IR') + '. هر ۱۰ ثانیه به‌روز می‌شود.';
+}
+load();
+setInterval(load, 10000);
+</script>
+</body>
+</html>

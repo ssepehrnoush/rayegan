@@ -1,0 +1,214 @@
+{
+ "title": "rayegan",
+ "font_size": 13,
+ "hold": 4,
+ "rows": [
+  {
+   "t": "cmd",
+   "s": "rayegan --port 8799"
+  },
+  {
+   "t": "out",
+   "spans": [
+    [
+     "15:03:29",
+     "dim"
+    ],
+    [
+     "  proxy: http://127.0.0.1:10808",
+     "text"
+    ]
+   ]
+  },
+  {
+   "t": "out",
+   "spans": [
+    [
+     "15:03:29",
+     "dim"
+    ],
+    [
+     "  looking up free models...",
+     "text"
+    ]
+   ]
+  },
+  {
+   "t": "out",
+   "spans": [
+    [
+     "15:03:29",
+     "dim"
+    ],
+    [
+     "    groq: skipped, set GROQ_API_KEY",
+     "yellow"
+    ]
+   ]
+  },
+  {
+   "t": "out",
+   "spans": [
+    [
+     "15:03:29",
+     "dim"
+    ],
+    [
+     "    gemini: skipped, set GEMINI_API_KEY",
+     "yellow"
+    ]
+   ]
+  },
+  {
+   "t": "out",
+   "spans": [
+    [
+     "15:03:29",
+     "dim"
+    ],
+    [
+     "    kilo: 6 model(s)",
+     "text"
+    ]
+   ]
+  },
+  {
+   "t": "out",
+   "spans": [
+    [
+     "15:03:29",
+     "dim"
+    ],
+    [
+     "  6 model(s) in the chain, smartest first",
+     "text"
+    ]
+   ]
+  },
+  {
+   "t": "out",
+   "spans": [
+    [
+     "15:03:29",
+     "dim"
+    ],
+    [
+     "  ready: http://127.0.0.1:8799/v1   (model \"auto\")   dashboard: http://127.0.0.1:8799/",
+     "green"
+    ]
+   ]
+  },
+  {
+   "t": "gap"
+  },
+  {
+   "t": "cmd",
+   "s": "curl -si localhost:8799/v1/chat/completions -d '{\"model\":\"auto\", ...}'"
+  },
+  {
+   "t": "rtl",
+   "s": "یک جمله: چرا آسمان آبی است؟"
+  },
+  {
+   "t": "gap"
+  },
+  {
+   "t": "out",
+   "s": "HTTP/1.1 200 OK",
+   "c": "green"
+  },
+  {
+   "t": "out",
+   "spans": [
+    [
+     "x-rayegan-provider:",
+     "dim"
+    ],
+    [
+     " kilo",
+     "cyan"
+    ]
+   ]
+  },
+  {
+   "t": "out",
+   "spans": [
+    [
+     "x-rayegan-model:",
+     "dim"
+    ],
+    [
+     " nvidia/nemotron-3-ultra-550b-a55b:free",
+     "cyan"
+    ]
+   ]
+  },
+  {
+   "t": "out",
+   "spans": [
+    [
+     "x-rayegan-attempts:",
+     "dim"
+    ],
+    [
+     " 1",
+     "cyan"
+    ]
+   ]
+  },
+  {
+   "t": "rtl",
+   "s": "آسمان آبی به نظر می‌رسد چون جزيئات هوا در اتمسفر پرتوهای موج"
+  },
+  {
+   "t": "rtl",
+   "s": "کوتاه نور خورشید (رنگ‌های بنفش و آبی) را به شدت‌تر از رنگ‌های"
+  },
+  {
+   "t": "rtl",
+   "s": "دیگر پراکنش می‌دهند."
+  },
+  {
+   "t": "gap"
+  },
+  {
+   "t": "cmd",
+   "s": "rayegan doctor --chat"
+  },
+  {
+   "t": "out",
+   "s": "proxy: http://127.0.0.1:10808",
+   "c": "text"
+  },
+  {
+   "t": "out",
+   "s": "provider    result        time     models  detail",
+   "c": "dim"
+  },
+  {
+   "t": "out",
+   "s": "------------------------------------------------------------------------",
+   "c": "dim"
+  },
+  {
+   "t": "out",
+   "s": "kilo        ok            895 ms   6       nvidia/nemotron-3-ultra-550b-a55b:free answered in 4896 ms",
+   "c": "green"
+  },
+  {
+   "t": "out",
+   "s": "groq        needs key     -        -       set GROQ_API_KEY",
+   "c": "yellow"
+  },
+  {
+   "t": "out",
+   "s": "gemini      needs key     -        -       set GEMINI_API_KEY",
+   "c": "yellow"
+  },
+  {
+   "t": "out",
+   "s": "1 provider(s) usable. Start the server with: rayegan",
+   "c": "text"
+  }
+ ]
+}

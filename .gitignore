@@ -1,0 +1,5 @@
+node_modules/
+# Your own config holds API keys. Never commit it.
+rayegan.json
+.rayegan/
+*.log

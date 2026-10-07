@@ -1,0 +1,52 @@
+{
+  "name": "rayegan",
+  "version": "0.1.0",
+  "description": "One OpenAI-compatible endpoint on top of every free LLM API tier: the smartest model with quota left answers, then the next. Keyless providers first, HTTP and SOCKS5 proxy support, built for developers in Iran.",
+  "keywords": [
+    "llm",
+    "free-llm-api",
+    "openai-compatible",
+    "llm-router",
+    "llm-gateway",
+    "fallback",
+    "rate-limit",
+    "groq",
+    "gemini",
+    "openrouter",
+    "cerebras",
+    "proxy",
+    "socks5",
+    "iran",
+    "persian"
+  ],
+  "license": "MIT",
+  "author": "ssepehrnoush",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "bin": {
+    "rayegan": "./src/cli.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node src/cli.js",
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ssepehrnoush/rayegan.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ssepehrnoush/rayegan/issues"
+  },
+  "homepage": "https://github.com/ssepehrnoush/rayegan#readme"
+}

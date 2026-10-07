@@ -1,0 +1,21 @@
+{
+  "proxy": "http://127.0.0.1:10808",
+  "keys": {
+    "groq": "gsk_...",
+    "cerebras": "csk-...",
+    "openrouter": "sk-or-...",
+    "nvidia": "nvapi-...",
+    "gemini": "AQ....",
+    "mistral": "...",
+    "cloudflare": "..."
+  },
+  "vars": {
+    "CLOUDFLARE_ACCOUNT_ID": "..."
+  },
+  "disable": [],
+  "providers": [
+    { "id": "openrouter", "limits": { "rpd": 1000 } }
+  ],
+  "apiKey": null,
+  "port": 8787
+}
