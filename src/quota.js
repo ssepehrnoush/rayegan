@@ -116,11 +116,12 @@ export class Usage {
     const used = this.counts[limitKey] || { req: 0, tok: 0 };
     if (lim.rpd && used.req >= lim.rpd) return { ok: false, reason: 'daily-limit' };
     if (lim.tpd && used.tok >= lim.tpd) return { ok: false, reason: 'daily-tokens' };
-    if (lim.rpm) {
-      const recent = (this.recent[limitKey] || []).filter((x) => x > t - MIN);
-      this.recent[limitKey] = recent;
-      if (recent.length >= lim.rpm) return { ok: false, reason: 'minute-limit' };
-    }
+    // Timestamps are kept for the longest window this limit needs (an hour
+    // for rph, a minute otherwise), and only in memory.
+    const recent = (this.recent[limitKey] || []).filter((x) => x > t - (lim.rph ? HOUR : MIN));
+    this.recent[limitKey] = recent;
+    if (lim.rpm && recent.filter((x) => x > t - MIN).length >= lim.rpm) return { ok: false, reason: 'minute-limit' };
+    if (lim.rph && recent.length >= lim.rph) return { ok: false, reason: 'hourly-limit' };
     return { ok: true };
   }
 

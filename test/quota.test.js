@@ -59,6 +59,19 @@ test('per-minute limit frees up after a minute', () => {
   assert.equal(u.check(c).ok, true);
 });
 
+test('per-hour limit holds after the minute window is clear', () => {
+  const now = clock();
+  const u = new Usage({ now });
+  const c = cand('m', { rpm: 20, rph: 3 });
+  for (let i = 0; i < 3; i++) {
+    u.sent(c);
+    now.add(61 * 1000);
+  }
+  assert.equal(u.check(c).reason, 'hourly-limit');
+  now.add(HOUR);
+  assert.equal(u.check(c).ok, true);
+});
+
 test('provider-scoped limits are shared by every model of that provider', () => {
   const u = new Usage({ now: clock() });
   const a = cand('a', { rpd: 1 });

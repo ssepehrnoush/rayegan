@@ -1,24 +1,28 @@
 {
-  "$comment": "Free tiers change often. Limits here are conservative defaults checked on 2026-10-07; a 429 from the provider always wins over these numbers. PRs that update a limit should say where the number came from.",
-  "checked": "2026-10-07",
+  "$comment": "Free tiers change often. Limits here are conservative defaults checked on 2026-10-29; a 429 from the provider always wins over these numbers. PRs that update a limit should say where the number came from. Stealth models (beam, glyph-cluster) are ranked by a live Persian probe on 2026-10-29, not by a published benchmark.",
+  "checked": "2026-10-29",
 
   "ranking": [
     "kimi-k3",
     "deepseek-v4[.0-9]*-pro",
     "glm-5\\.[0-9]+(-prime)?(:free)?$",
     "qwen3\\.[0-9]+-max",
+    "qwen3\\.[0-9]+-[0-9]{3}b",
     "nemotron-3-ultra",
     "kimi-k2\\.[0-9]+",
     "deepseek-v4[.0-9]*-flash",
     "minimax-m3",
     "gpt-oss-120b",
+    "(^|/)beam-free",
+    "glyph-cluster",
     "gemini-[0-9.]+-(pro|flash)(-preview)?$",
     "step-3",
     "glm-5\\.[0-9]+-flash",
     "qwen3\\.[0-9]+-(plus|flash|27b|35b)",
-    "nemotron-3-super",
+    "nemotron-3(\\.[0-9]+)?-super",
     "mistral-medium",
-    "llama-3\\.3-70b",
+    "llama-3[._]3-70b",
+    "dots-[0-9]",
     "gemini-[0-9.]+-flash-lite",
     "(^|/)ling-",
     "mistral-small",
@@ -28,7 +32,7 @@
     "llama-3\\.1-8b"
   ],
 
-  "exclude": ["^~", "auto", "^openrouter/", "vision", "safety", "embed", "guard", "whisper", "tts"],
+  "exclude": ["^~", "auto", "^openrouter/", "vision", "safety", "embed", "guard", "whisper", "tts", "bge", "diffusion", "rerank"],
 
   "providers": [
     {
@@ -37,9 +41,22 @@
       "baseUrl": "https://api.kilo.ai/api/gateway",
       "keyless": true,
       "discover": { "freeOnly": true },
-      "limits": { "rpm": 20 },
+      "limits": { "rpm": 20, "rph": 200 },
       "signup": null,
-      "privacy": "Free and stealth models on public gateways may log prompts. Do not send secrets or personal data."
+      "privacy": "Free models come from many upstreams. Kilo's docs say NVIDIA's free endpoints log prompts (trial use only) and its auto-free router may use providers that log. Do not send secrets or personal data.",
+      "note": "Anonymous use is 200 requests an hour per IP (Kilo gateway docs, 2026-10)."
+    },
+    {
+      "id": "ovh",
+      "name": "OVHcloud AI Endpoints",
+      "baseUrl": "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1",
+      "keyless": true,
+      "keyEnv": "OVH_AI_ENDPOINTS_ACCESS_TOKEN",
+      "discover": {},
+      "limits": { "scope": "model", "rpm": 2 },
+      "signup": null,
+      "privacy": "Hosted in the EU. OVHcloud says AI Endpoints data is not used for training and is not stored; its pages do not say whether that covers anonymous calls.",
+      "note": "Anonymous use is 2 requests a minute per IP and per model, every chat model is free that way. A token from a paid Public Cloud project raises it to 400; set limits.rpm in your config if you have one."
     },
     {
       "id": "groq",

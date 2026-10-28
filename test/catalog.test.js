@@ -14,6 +14,20 @@ test('ranking puts big models ahead of small ones', () => {
   assert.ok(rankOf('gemini-3.5-flash', ranking) < rankOf('gemini-3.5-flash-lite', ranking));
 });
 
+test('OVH and new Kilo model names are ranked, and OVH non-chat models are dropped', () => {
+  assert.ok(rankOf('Qwen3.5-397B-A17B', ranking) < rankOf('gpt-oss-120b', ranking));
+  assert.ok(rankOf('Qwen3.5-397B-A17B', ranking) < rankOf('Qwen3.8-27B', ranking));
+  assert.notEqual(rankOf('Meta-Llama-3_3-70B-Instruct', ranking), -1);
+  assert.notEqual(rankOf('nvidia/nemotron-3.5-super-vl:free', ranking), -1);
+  assert.ok(rankOf('reflection/beam-free', ranking) < rankOf('nvidia/nemotron-3.5-lightning:free', ranking));
+  const p = provider('ovh', 'http://x', { discover: {} });
+  const got = pickModels(p, [
+    { id: 'Qwen3.5-397B-A17B' }, { id: 'gpt-oss-120b' }, { id: 'bge-m3' }, { id: 'Qwen3-Embedding-8B' },
+    { id: 'stable-diffusion-xl-base-v10' }, { id: 'whisper-large-v3' }, { id: 'nvr-tts-en-us' }, { id: 'Qwen3Guard-Gen-8B' },
+  ], cfg);
+  assert.deepEqual(got, ['Qwen3.5-397B-A17B', 'gpt-oss-120b']);
+});
+
 test('a model that matches no pattern is not ranked', () => {
   assert.equal(rankOf('liquid/lfm-2.5-2.6b:free', ranking), -1);
 });
